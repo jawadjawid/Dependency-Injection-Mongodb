@@ -1,12 +1,9 @@
 package ca.utoronto.utm.mcs.API;
 
 import ca.utoronto.utm.mcs.Utils;
-import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 import org.bson.Document;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,11 +13,10 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.List;
 
 public class BlogPostApi implements HttpHandler {
 
-    private MongoClient db;
+    private final MongoClient db;
 
     @Inject
     public BlogPostApi(MongoClient db) {
@@ -30,14 +26,19 @@ public class BlogPostApi implements HttpHandler {
     @Override
     public void handle(HttpExchange r) {
         try {
-            if (r.getRequestMethod().equals("PUT")) {
-                handlePut(r);
-            }else if(r.getRequestMethod().equals("GET")) {
-                handleGet(r);
-            }else if(r.getRequestMethod().equals("DELETE")) {
-                handleDelete(r);
-            }else {
-                r.sendResponseHeaders(405, -1);
+            switch (r.getRequestMethod()) {
+                case "PUT":
+                    handlePut(r);
+                    break;
+                case "GET":
+                    handleGet(r);
+                    break;
+                case "DELETE":
+                    handleDelete(r);
+                    break;
+                default:
+                    r.sendResponseHeaders(405, -1);
+                    break;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -49,7 +50,7 @@ public class BlogPostApi implements HttpHandler {
             String title, author, content;
             JSONArray tags;
             Document document = new Document();
-            List<String> tagsArray = new ArrayList();
+            ArrayList tagsArray = new ArrayList();
             JSONObject resJson = new JSONObject();
             String res;
 
