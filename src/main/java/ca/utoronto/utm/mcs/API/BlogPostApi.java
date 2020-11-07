@@ -1,8 +1,6 @@
 package ca.utoronto.utm.mcs.API;
 
 import ca.utoronto.utm.mcs.Utils;
-import ca.utoronto.utm.mcs.exceptions.BadRequestException;
-import ca.utoronto.utm.mcs.exceptions.NotFoundException;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -17,6 +15,8 @@ import org.json.JSONObject;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BlogPostApi implements HttpHandler {
 
@@ -44,34 +44,47 @@ public class BlogPostApi implements HttpHandler {
         }
     }
 
-    public void handlePut(HttpExchange r) throws Exception{
-        String title, author, content;
-        JSONArray tags;
+    public void handlePut(HttpExchange r) throws IOException {
         try{
-            String body = Utils.convert(r.getRequestBody());
-            JSONObject deserialized = new JSONObject(body);
-            title = deserialized.getString("title");
-            author = deserialized.getString("author");
-            content = deserialized.getString("content");
-            tags = deserialized.getJSONArray("tags");
-        } catch (JSONException e) {
-            r.sendResponseHeaders(400, -1);
-            return;
-        }
+            String title, author, content;
+            JSONArray tags;
+            Document document = new Document();
+            List<String> tagsArray = new ArrayList();
+            JSONObject resJson = new JSONObject();
+            String res;
 
-        Document document = new Document();
-        document.put("title", title);
-        document.put("author", author);
-        document.put("content", content);
-        //document.put("tags", tags);
+            try{
+                String body = Utils.convert(r.getRequestBody());
+                JSONObject deserialized = new JSONObject(body);
+                title = deserialized.getString("title");
+                author = deserialized.getString("author");
+                content = deserialized.getString("content");
+                tags = deserialized.getJSONArray("tags");
+                for (int i = 0; i < tags.length(); i++) {
+                    tagsArray.add(tags.getString(i));
+                }
+            } catch (JSONException e) {
+                r.sendResponseHeaders(400, -1);
+                return;
+            }
 
-        try{
+            document.put("title", title);
+            document.put("author", author);
+            document.put("content", content);
+            document.put("tags", tagsArray);
             db.getDatabase("csc301a2").getCollection("posts").insertOne(document);
-        } catch (Exception e) {
+
+            String id = document.getObjectId("_id").toString();
+            resJson.put("_id", id);
+            res = resJson.toString();
+            r.sendResponseHeaders(200, res.length());
+            OutputStream os = r.getResponseBody();
+            os.write(res.getBytes());
+            os.close();
+
+        } catch (Exception e){
             r.sendResponseHeaders(500, -1);
-            return;
         }
-        r.sendResponseHeaders(200, -1);
     }
 
     public void handleGet(HttpExchange r) throws IOException {
