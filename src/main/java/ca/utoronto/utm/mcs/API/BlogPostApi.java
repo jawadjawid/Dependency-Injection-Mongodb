@@ -133,7 +133,10 @@ public class BlogPostApi implements HttpHandler {
     				r.sendResponseHeaders(404, -1);
                     return;
     			}
-    			JSONArray arr = new JSONArray();
+    			JSONObject oid = new JSONObject();
+    			oid.put("$oid", resDoc.getObjectId("_id"));
+    			resDoc.replace("_id", oid);
+;    			JSONArray arr = new JSONArray();
     			arr.put(resDoc);
     			response = arr.toString();
     		} else if(title != null) {
@@ -141,7 +144,11 @@ public class BlogPostApi implements HttpHandler {
     			MongoCursor resCursor = collection.find(queryDoc).cursor();
     			JSONArray arr = new JSONArray();
     			while(resCursor.hasNext()) {
-    				arr.put(((Document)resCursor.next()));
+    				Document curDoc = (Document)resCursor.next();
+    				JSONObject oid = new JSONObject();
+    				oid.put("$oid", curDoc.getObjectId("_id"));
+    				curDoc.replace("_id", oid);
+    				arr.put(curDoc);
     			}
     			if(arr.length() == 0) {
     				r.sendResponseHeaders(404, -1);
