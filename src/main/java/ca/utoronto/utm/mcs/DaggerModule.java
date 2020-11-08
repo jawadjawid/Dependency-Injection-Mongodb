@@ -16,7 +16,9 @@ public class DaggerModule {
     private static MongoClient db;
 
     @Provides public MongoClient provideMongoClient() {
-        db = MongoClients.create();
+        if (db == null){
+            db = MongoClients.create();
+        }
         return db;
     }
 
