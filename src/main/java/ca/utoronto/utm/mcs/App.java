@@ -2,7 +2,6 @@ package ca.utoronto.utm.mcs;
 
 import ca.utoronto.utm.mcs.API.DaggerBlogPostApiComponent;
 
-
 public class App
 {
     static int port = 8080;
