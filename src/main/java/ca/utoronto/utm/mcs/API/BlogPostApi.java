@@ -133,7 +133,9 @@ public class BlogPostApi implements HttpHandler {
     				r.sendResponseHeaders(404, -1);
                     return;
     			}
-    			response = resDoc.toJson();
+    			JSONArray arr = new JSONArray();
+    			arr.put(resDoc);
+    			response = arr.toString();
     		} else if(title != null) {
     			queryDoc.append("title", (new Document()).append("$regex", title));
     			MongoCursor resCursor = collection.find(queryDoc).cursor();
