@@ -9,11 +9,15 @@ import dagger.Provides;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 
+import javax.inject.Named;
+
 @Module
 public class DaggerModule {
 
     private static HttpServer server;
     private static MongoClient db;
+    private static String databaseName;
+    private static String collectionName;
 
     @Provides public MongoClient provideMongoClient() {
         if (db == null){
@@ -32,4 +36,17 @@ public class DaggerModule {
         }
     }
 
+    @Provides
+    @Named("databaseName")
+    public String provideDatabaseName() {
+        databaseName = "csc301a2";
+        return databaseName;
+    }
+
+    @Provides
+    @Named("collectionName")
+    public String provideCollectionName() {
+        collectionName = "posts";
+        return collectionName;
+    }
 }

@@ -2,30 +2,39 @@ package ca.utoronto.utm.mcs.API;
 
 import ca.utoronto.utm.mcs.Utils;
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
 public class BlogPostApi implements HttpHandler {
 
-    private final MongoClient db;
+    private MongoClient db;
+    private String databaseName;
+    private String collectionName;
+    private MongoCollection collection ;
 
     @Inject
-    public BlogPostApi(MongoClient db) {
+    public BlogPostApi(MongoClient db, @Named("databaseName") String databaseName, @Named("collectionName") String collectionName) {
         this.db = db;
+        this.databaseName = databaseName;
+        this.collectionName = collectionName;
     }
 
     @Override
     public void handle(HttpExchange r) {
         try {
+            this.collection = db.getDatabase(databaseName).getCollection(collectionName);
             switch (r.getRequestMethod()) {
                 case "PUT":
                     handlePut(r);
@@ -73,7 +82,7 @@ public class BlogPostApi implements HttpHandler {
             document.put("author", author);
             document.put("content", content);
             document.put("tags", tagsArray);
-            db.getDatabase("csc301a2").getCollection("posts").insertOne(document);
+            collection.insertOne(document);
 
             String id = document.getObjectId("_id").toString();
             resJson.put("_id", id);
@@ -84,7 +93,6 @@ public class BlogPostApi implements HttpHandler {
             os.close();
 
         } catch (Exception e){
-            r.sendResponseHeaders(500, -1);
         }
     }
 
@@ -92,5 +100,29 @@ public class BlogPostApi implements HttpHandler {
     }
 
     public void handleDelete(HttpExchange r) throws IOException {
+        try {
+            String _id;
+            Document document = new Document();
+
+            try{
+                String body = Utils.convert(r.getRequestBody());
+                JSONObject deserialized = new JSONObject(body);
+                _id = deserialized.getString("_id");
+            } catch (JSONException e) {
+                r.sendResponseHeaders(400, -1);
+                return;
+            }
+
+            document.put("_id", new ObjectId(_id));
+
+            if(collection.find(document).first() == null){
+                r.sendResponseHeaders(404, -1);
+                return;
+            }
+            collection.findOneAndDelete(document);
+            r.sendResponseHeaders(200, -1);
+        } catch (Exception e){
+            r.sendResponseHeaders(500, -1);
+        }
     }
 }
