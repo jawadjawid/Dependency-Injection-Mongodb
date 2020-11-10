@@ -1,31 +1,52 @@
 package ca.utoronto.utm.mcs;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpServer;
 
 import dagger.Module;
 import dagger.Provides;
 
-import com.mongodb.MongoClientSettings;
-import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+
+import javax.inject.Named;
 
 @Module
 public class DaggerModule {
 
-	private static HttpServer server;
-	private static MongoClient db;
-	
+    private static HttpServer server;
+    private static MongoClient db;
+    private static String databaseName;
+    private static String collectionName;
+
     @Provides public MongoClient provideMongoClient() {
-        /* TODO: Fill in this function */
-    	return null;
+        if (db == null){
+            db = MongoClients.create();
+        }
+        return db;
     }
 
     @Provides public HttpServer provideHttpServer() {
-        /* TODO: Fill in this function */
-        return null;
+        try {
+            server = HttpServer.create(new InetSocketAddress("0.0.0.0", 8080), 0);
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            return server;
+        }
+    }
+
+    @Provides
+    @Named("databaseName")
+    public String provideDatabaseName() {
+        databaseName = "csc301a2";
+        return databaseName;
+    }
+
+    @Provides
+    @Named("collectionName")
+    public String provideCollectionName() {
+        collectionName = "posts";
+        return collectionName;
     }
 }
