@@ -3,6 +3,7 @@ package ca.utoronto.utm.mcs.API;
 import ca.utoronto.utm.mcs.Utils;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.bson.Document;
@@ -93,10 +94,77 @@ public class BlogPostApi implements HttpHandler {
             os.close();
 
         } catch (Exception e){
+        	r.sendResponseHeaders(500, -1);
         }
     }
 
     public void handleGet(HttpExchange r) throws IOException {
+    	try {
+    		String title = null, _id = null;
+    		JSONObject query;
+    		
+    		try{
+                String body = Utils.convert(r.getRequestBody());
+                query = new JSONObject(body);
+                if(query.has("_id"))
+                	_id = query.getString("_id");
+                else if(query.has("title"))
+                	title = query.getString("title");
+                else {
+                	r.sendResponseHeaders(400, -1);
+                    return;
+                }
+            } catch (JSONException e) {
+                r.sendResponseHeaders(400, -1);
+                return;
+            }
+
+    		Document queryDoc = new Document();
+    		String response = null;
+    		
+    		if(_id != null) {
+    			try {queryDoc.put("_id", new ObjectId(_id));}
+    			catch(IllegalArgumentException e) {
+    				r.sendResponseHeaders(400, -1);
+    				return;
+    			}
+    			Document resDoc = (Document) collection.find(queryDoc).first();
+    			if(resDoc == null) {
+    				r.sendResponseHeaders(404, -1);
+                    return;
+    			}
+    			JSONObject oid = new JSONObject();
+    			oid.put("$oid", resDoc.getObjectId("_id"));
+    			resDoc.replace("_id", oid);
+;    			JSONArray arr = new JSONArray();
+    			arr.put(resDoc);
+    			response = arr.toString();
+    		} else if(title != null) {
+    			queryDoc.append("title", (new Document()).append("$regex", title));
+    			MongoCursor resCursor = collection.find(queryDoc).cursor();
+    			JSONArray arr = new JSONArray();
+    			while(resCursor.hasNext()) {
+    				Document curDoc = (Document)resCursor.next();
+    				JSONObject oid = new JSONObject();
+    				oid.put("$oid", curDoc.getObjectId("_id"));
+    				curDoc.replace("_id", oid);
+    				arr.put(curDoc);
+    			}
+    			if(arr.length() == 0) {
+    				r.sendResponseHeaders(404, -1);
+                    return;
+    			}
+    			response = arr.toString();
+    		}
+    		
+            r.sendResponseHeaders(200, response.length());
+            OutputStream os = r.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+    		
+    	} catch (Exception e){
+            r.sendResponseHeaders(500, -1);
+        }
     }
 
     public void handleDelete(HttpExchange r) throws IOException {
@@ -113,7 +181,11 @@ public class BlogPostApi implements HttpHandler {
                 return;
             }
 
-            document.put("_id", new ObjectId(_id));
+            try{document.put("_id", new ObjectId(_id));}
+            catch(IllegalArgumentException e) {
+            	r.sendResponseHeaders(400, -1);
+				return;
+            }
 
             if(collection.find(document).first() == null){
                 r.sendResponseHeaders(404, -1);
