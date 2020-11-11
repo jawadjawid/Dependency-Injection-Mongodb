@@ -140,8 +140,10 @@ public class BlogPostApi implements HttpHandler {
     			arr.put(resDoc);
     			response = arr.toString();
     		} else if(title != null) {
-    			queryDoc.append("title", (new Document()).append("$regex", title));
-    			MongoCursor resCursor = collection.find(queryDoc).cursor();
+    			queryDoc.append("title", (new Document()).append("$regex", "\\Q" + title + "\\E"));
+    			Document sortDoc = new Document();
+    			sortDoc.put("title", 1);
+    			MongoCursor resCursor = collection.find(queryDoc).sort(sortDoc).cursor();
     			JSONArray arr = new JSONArray();
     			while(resCursor.hasNext()) {
     				Document curDoc = (Document)resCursor.next();
@@ -154,6 +156,7 @@ public class BlogPostApi implements HttpHandler {
     				r.sendResponseHeaders(404, -1);
                     return;
     			}
+    			
     			response = arr.toString();
     		}
     		
