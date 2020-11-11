@@ -140,7 +140,7 @@ public class BlogPostApi implements HttpHandler {
     			arr.put(resDoc);
     			response = arr.toString();
     		} else if(title != null) {
-    			queryDoc.append("title", (new Document()).append("$regex", title));
+    			queryDoc.append("title", (new Document()).append("$regex", "\\Q" + title + "\\E"));
     			Document sortDoc = new Document();
     			sortDoc.put("title", 1);
     			MongoCursor resCursor = collection.find(queryDoc).sort(sortDoc).cursor();
